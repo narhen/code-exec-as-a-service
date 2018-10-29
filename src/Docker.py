@@ -1,4 +1,5 @@
 import docker
+import json
 from settings import docker_settings as settings
 
 class Docker():
@@ -19,7 +20,31 @@ class Docker():
     def get_image_name(self, lang):
         return "{prefix}{lang}".format(prefix=settings.image.tag_prefix, lang=lang)
 
-    def run_container(self, lang):
+    def run_container(self, lang, code_dir, mountpoint):
         image_name = self.get_image_name(lang)
-        return self.docker_client.containers.run(image_name, **settings.container)
+        volume = {
+                code_dir: {
+                    "bind": mountpoint,
+                    "mode": "rw"
+                }
+        }
+        return self.docker_client.containers.run(image_name, **settings.container, volumes=volume)
+
+    def build_code(self, container, path):
+        return self.__exec(container, "build_program.sh {prog_path}".format(prog_path=path))
+
+    def run_code(self, container, path):
+        return self.__exec(container, "run_program.sh {prog_path}".format(prog_path=path))
+
+    def __exec(self, container, cmd):
+        exit_code, output = container.exec_run(cmd, privileged=False, user="user")
+        if exit_code != 0:
+            raise Exception("Something went wrong when executing. Exit code = {}, output = '{}'".format(exit_code, output))
+        try:
+            return json.loads(output.decode("utf-8"))
+        except Exception as e:
+            return {
+                    "status": "error",
+                    "message": "Failed to decode json in response from container: '{}'".format(e),
+            }
 

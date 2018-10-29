@@ -2,7 +2,7 @@ from os import environ
 from addict import Dict
 
 docker_settings = Dict()
-docker_settings.image.tag_prefix = "lang:"
+docker_settings.image.tag_prefix = "lang:" # The prefix to look for in docker image tags
 # Settings documented here: https://docker-py.readthedocs.io/en/stable/containers.html
 docker_settings.container.auto_remove = True
 docker_settings.container.cpuset_cpus = "1"
@@ -18,7 +18,7 @@ docker_settings.container.tty = False
 docker_settings.container.user = 1000
 docker_settings.container.working_dir = "/"
 docker_settings.container.detach = True
-docker_settings.container.command = "sleep 10" # number of seconds the container can live
+docker_settings.container.command = "sleep 120" # number of seconds the container can live
 
 
 application = Dict()
