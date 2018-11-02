@@ -1,6 +1,6 @@
 import docker
 import json
-from settings import docker_settings as settings
+from settings import docker_settings as settings, code_exec as exec_settings
 
 class Docker():
     def __init__(self):
@@ -33,11 +33,18 @@ class Docker():
     def build_code(self, container, path):
         return self.__exec(container, "build_program.sh {prog_path}".format(prog_path=path))
 
-    def run_code(self, container, path):
+    def run_code(self, container, path, program_input=None):
         return self.__exec(container, "run_program.sh {prog_path}".format(prog_path=path))
 
-    def __exec(self, container, cmd):
-        exit_code, output = container.exec_run(cmd, privileged=False, user="user")
+    def __exec(self, container, cmd, program_input=None):
+        if not program_input:
+            exit_code, output = container.exec_run(cmd, privileged=False, user="user")
+        else:
+            exit_code, socket = container.exec_run(cmd, privileged=False, user="user", stdin=True, socket=True)
+            socket.settimeout(exec_settings.read_timeout)
+            socket.sendall(program_input)
+            output = socket.recv(exec_settings.max_output_length)
+
         if exit_code != 0:
             raise Exception("Something went wrong when executing. Exit code = {}, output = '{}'".format(exit_code, output))
         try:
