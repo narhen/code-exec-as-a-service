@@ -25,7 +25,7 @@ class CodeExec:
 
         try:
             code = req.bounded_stream.read()
-            resp.media = self._build_and_run_code(code)
+            resp.media = self._build_and_run_code(code, lang)
 
             resp.status = falcon.HTTP_200
         except Exception as e:
@@ -39,10 +39,10 @@ class CodeExec:
             "output": output,
         }
 
-    def _build_and_run_code(self, code):
+    def _build_and_run_code(self, code, lang):
         code_path, code_filename = self._create_tmp_dir(code)
         mountpoint = "/mnt"
-        container = self.docker_client.run_container("C", code_path, mountpoint)
+        container = self.docker_client.run_container(lang, code_path, mountpoint)
 
         output = self._exec_code(container, code_path, code_filename, mountpoint)
 
