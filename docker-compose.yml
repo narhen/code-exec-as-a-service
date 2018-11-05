@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  code-exec-as-a-service:
+    build:
+      context: .
+    container_name: code-exec-as-a-service
+    tty: true # needed for logging to work
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        - /tmp/:/tmp/:rw
+    ports:
+        - 8080:8080
+    environment:
+        - PORT=8080
