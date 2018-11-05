@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import docker
 from sys import exit
 from gevent.pywsgi import WSGIServer
 from falcon import API
@@ -11,7 +12,8 @@ def docker_is_available():
     try:
         docker.from_env().info()
         return True
-    except:
+    except Exception as e:
+        print(str(e))
         return False
 
 def main():
@@ -25,6 +27,8 @@ def main():
     app = API()
     app.add_route("/exec/{lang}", code_exec_handler)
     app.add_route("/", languages_handler)
+
+    print("Starting on {host}:{port}".format(host=application.host, port=application.port))
     WSGIServer((application.host, application.port), app).serve_forever()
 
     return 0

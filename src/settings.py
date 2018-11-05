@@ -27,4 +27,4 @@ application.host = "127.0.0.1"
 
 code_exec = Dict() # settings for executing user code
 code_exec.read_timeout = 1.0 # max time (seconds) to wait for program output
-code_exec.max_output_length = 8192 # maximum ouput length (bytes)
+code_exec.max_output_length = 8192 # maximum ouput length (bytes). Set to None for infinite length
