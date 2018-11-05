@@ -1,9 +1,12 @@
 import falcon
 import tempfile
+import base64
+import traceback
 from json import loads
 from os import path
 from shutil import rmtree
-import base64
+from settings import application as app_settings
+
 
 class Languages:
     def __init__(self, docker_client):
@@ -26,7 +29,7 @@ class CodeExec:
             return
 
         try:
-            code = loads(req.bounded_stream.read())
+            code = loads(req.bounded_stream.read().decode("utf-8"))
 
             source_code = base64.b64decode(bytearray(code["source"], "utf-8"))
             inputs = code.get("inputs", [])
@@ -35,6 +38,7 @@ class CodeExec:
             resp.media = output
             resp.status = status_code
         except Exception as e:
+            traceback.print_exc()
             print(str(e))
             resp.media = self._create_error("Internal server error", str(e))
             resp.status = falcon.HTTP_500
@@ -45,6 +49,8 @@ class CodeExec:
         container = self.docker_client.run_container(lang, code_path, mountpoint)
         build_status = self._build_code(container, code_path, code_filename, mountpoint)
         if build_status["status"] != "ok":
+            rmtree(code_path)
+            container.kill()
             return falcon.HTTP_400, build_status
 
         outputs = []
@@ -52,7 +58,7 @@ class CodeExec:
             output = self._exec_code(container, code_path, build_status["outfile"], mountpoint, program_input)
             outputs.append({"input": program_input, "output": output})
 
-        ret = rmtree(code_path)
+        rmtree(code_path)
         container.kill()
 
         return falcon.HTTP_200, outputs
@@ -66,12 +72,17 @@ class CodeExec:
         build_status = self.docker_client.build_code(container, path.join(mountpoint, code_filename))
         if build_status["status"].lower() != "ok":
             message = build_status.get("message") or "There was a build error"
-            output = self._read_file(code_path, build_status.get("outfile"))
+
+            outfile = build_status.get("outfile")
+            if outfile:
+                output = self._read_file(code_path, outfile)
+            else:
+                output = None
             return self._create_error("BUILD_ERROR", message, output)
         return build_status
 
     def _create_tmp_dir(self, code):
-        tmp_path = tempfile.mkdtemp()
+        tmp_path = tempfile.mkdtemp(dir=app_settings.tmp_dir)
         code_filename = "code"
 
         with open(path.join(tmp_path, code_filename), "w") as fh:

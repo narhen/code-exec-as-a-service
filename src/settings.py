@@ -22,8 +22,9 @@ docker_settings.container.command = "sleep 120" # number of seconds the containe
 
 
 application = Dict()
-application.port = 8080
-application.host = "127.0.0.1"
+application.port = int(environ.get("PORT", "8080"))
+application.host = environ.get("HOST", "0.0.0.0")
+application.tmp_dir = environ.get("TMP_DIRECTORY", "/tmp") # Should be a one-to-one mapping from the host filesystem
 
 code_exec = Dict() # settings for executing user code
 code_exec.read_timeout = 1.0 # max time (seconds) to wait for program output
