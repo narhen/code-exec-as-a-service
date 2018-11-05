@@ -31,8 +31,9 @@ class CodeExec:
             source_code = base64.b64decode(bytearray(code["source"], "utf-8"))
             inputs = code.get("inputs", [])
 
-            resp.media = self._build_and_run_code(source_code, lang, inputs)
-            resp.status = falcon.HTTP_200
+            status_code, output = self._build_and_run_code(source_code, lang, inputs)
+            resp.media = output
+            resp.status = status_code
         except Exception as e:
             print(str(e))
             resp.media = self._create_error("Internal server error", str(e))
@@ -44,7 +45,7 @@ class CodeExec:
         container = self.docker_client.run_container(lang, code_path, mountpoint)
         build_status = self._build_code(container, code_path, code_filename, mountpoint)
         if build_status["status"] != "ok":
-            return build_status
+            return falcon.HTTP_400, build_status
 
         outputs = []
         for program_input in inputs:
@@ -54,7 +55,7 @@ class CodeExec:
         ret = rmtree(code_path)
         container.kill()
 
-        return outputs
+        return falcon.HTTP_200, outputs
 
     def _exec_code(self, container, code_path, executable, mountpoint, program_input):
         program_output = self.docker_client.run_code(container, path.join(mountpoint, executable), program_input)
