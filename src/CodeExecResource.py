@@ -45,7 +45,7 @@ class CodeExec:
 
     def _build_and_run_code(self, code, lang, inputs):
         code_path, code_filename = self._create_tmp_dir(code)
-        mountpoint = "/mnt"
+        mountpoint = app_settings.code_base_mount_dir
         container = self.docker_client.run_container(lang, code_path, mountpoint)
         build_status = self._build_code(container, code_path, code_filename, mountpoint)
         if build_status["status"] != "ok":
