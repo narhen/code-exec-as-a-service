@@ -65,6 +65,11 @@ class CodeExec:
 
     def _exec_code(self, container, code_path, executable, mountpoint, program_input):
         program_output = self.docker_client.run_code(container, path.join(mountpoint, executable), program_input)
+
+        if program_output.get("status", "ok").lower() == "error":
+            message = program_output.get("message", "Internal server error")
+            return self._create_error("ERROR", "Failed to run code", message)
+
         output = self._read_file(code_path, program_output["outfile"])
         return self._create_error("OK", "Successfully executed code", output)
 

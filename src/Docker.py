@@ -45,8 +45,7 @@ class Docker():
         else:
             exit_code, socket = container.exec_run(cmd, privileged=False, user="user", stdin=True, socket=True)
             socket._sock.settimeout(exec_settings.read_timeout)
-
-            r=socket._sock.send(bytearray(program_input, "utf-8"))
+            socket._sock.send(bytes(program_input, "utf-8"))
             output = self.__read_from_docker_socket(socket)[:exec_settings.max_output_length]
 
         if exit_code is not None and exit_code != 0:
@@ -56,6 +55,6 @@ class Docker():
         except Exception as e:
             return {
                     "status": "error",
-                    "message": "Failed to decode json in response from container: '{}'".format(e),
+                    "message": "Failed to decode json in response from container: '{}'. Response was '{}'".format(e, output),
             }
 

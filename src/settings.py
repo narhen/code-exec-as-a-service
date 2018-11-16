@@ -18,7 +18,7 @@ docker_settings.container.tty = False
 docker_settings.container.user = 1000
 docker_settings.container.working_dir = "/"
 docker_settings.container.detach = True
-docker_settings.container.command = "sleep 120" # number of seconds the container can live
+docker_settings.container.command = "sleep {seconds}".format(seconds=60*5) # number of seconds the container can live
 
 
 application = Dict()
