@@ -9,7 +9,7 @@ function build_image {
 
 for dir in ./*; do
     dir=$(basename $dir)
-    if [ "$(basename $0)" != "$dir" ]; then
+    if [ "$dir" != "$(basename $0)" ] && [ "$dir" != "README.md" ]; then
         echo "building $dir"
         build_image $dir;
     fi

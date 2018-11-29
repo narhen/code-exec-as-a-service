@@ -26,6 +26,7 @@ application.port = int(environ.get("PORT", "8080"))
 application.host = environ.get("HOST", "0.0.0.0")
 application.tmp_dir = environ.get("TMP_DIRECTORY", "/tmp") # must be a one-to-one mapping from the host filesystem
 application.code_base_mount_dir = "/mnt" # base directory in which client code will be mounted (inside language docker containers)
+application.input_filename = "input.txt" # The file in which an input for programs will be stored
 
 code_exec = Dict() # settings for executing user code
 code_exec.read_timeout = 1.0 # max time (seconds) to wait for program output

@@ -1,5 +1,6 @@
 import docker
 import json
+from os import path
 from settings import docker_settings as settings, code_exec as exec_settings
 
 class Docker():
@@ -33,20 +34,14 @@ class Docker():
     def build_code(self, container, path):
         return self.__exec(container, "build_program.sh {prog_path}".format(prog_path=path))
 
-    def run_code(self, container, path, program_input=None):
-        return self.__exec(container, "run_program.sh {prog_path}".format(prog_path=path), program_input)
+    def run_code(self, container, prog_path, prog_input_path=None):
+        return self.__exec(container, "run_program.sh {prog_path} {input_path}".format(prog_path=prog_path, input_path=prog_input_path))
 
     def __read_from_docker_socket(self, sock):
         return b''.join(docker.utils.socket.frames_iter(sock))
 
     def __exec(self, container, cmd, program_input=None):
-        if not program_input:
-            exit_code, output = container.exec_run(cmd, privileged=False, user="user")
-        else:
-            exit_code, socket = container.exec_run(cmd, privileged=False, user="user", stdin=True, socket=True)
-            socket._sock.settimeout(exec_settings.read_timeout)
-            socket._sock.send(bytes(program_input, "utf-8"))
-            output = self.__read_from_docker_socket(socket)[:exec_settings.max_output_length]
+        exit_code, output = container.exec_run(cmd, privileged=False, user="user")
 
         if exit_code is not None and exit_code != 0:
             raise Exception("Something went wrong when executing. Exit code = {}, output = '{}'".format(exit_code, output))

@@ -3,7 +3,7 @@ import tempfile
 import base64
 import traceback
 from json import loads
-from os import path
+from os import path, unlink
 from shutil import rmtree
 from settings import application as app_settings
 
@@ -64,7 +64,14 @@ class CodeExec:
         return falcon.HTTP_200, outputs
 
     def _exec_code(self, container, code_path, executable, mountpoint, program_input):
-        program_output = self.docker_client.run_code(container, path.join(mountpoint, executable), program_input)
+        host_input_path = path.join(code_path, app_settings.input_filename)
+        with open(host_input_path, "wb") as f:
+            f.write(bytes(program_input, "utf-8"))
+
+        prog_path = path.join(mountpoint, executable)
+        input_path = path.join(mountpoint, app_settings.input_filename)
+        program_output = self.docker_client.run_code(container, prog_path, input_path)
+        unlink(host_input_path)
 
         if program_output.get("status", "ok").lower() == "error":
             message = program_output.get("message", "Internal server error")
