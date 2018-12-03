@@ -2,11 +2,12 @@ import falcon
 import tempfile
 import base64
 import traceback
+import string
 from json import loads
 from os import path, unlink
 from shutil import rmtree
 from settings import application as app_settings
-
+from Exceptions import ValidationException
 
 class Languages:
     def __init__(self, docker_client):
@@ -33,18 +34,22 @@ class CodeExec:
 
             source_code = base64.b64decode(bytearray(code["source"], "utf-8"))
             inputs = code.get("inputs", [])
+            filename = self.__sanitize_filename(code.get("filename", "code"))
 
-            status_code, output = self._build_and_run_code(source_code, lang, inputs)
+            status_code, output = self._build_and_run_code(source_code, filename, lang, inputs)
             resp.media = output
             resp.status = status_code
+        except ValidationException as e:
+            resp.media = self._create_error("Validation exception", str(e))
+            resp.status = falcon.HTTP_400
         except Exception as e:
             traceback.print_exc()
             print(str(e))
             resp.media = self._create_error("Internal server error", str(e))
             resp.status = falcon.HTTP_500
 
-    def _build_and_run_code(self, code, lang, inputs):
-        code_path, code_filename = self._create_tmp_dir(code)
+    def _build_and_run_code(self, code, code_filename, lang, inputs):
+        code_path, code_filename = self._create_tmp_dir(code, code_filename)
         mountpoint = app_settings.code_base_mount_dir
         container = self.docker_client.run_container(lang, code_path, mountpoint)
         build_status = self._build_code(container, code_path, code_filename, mountpoint)
@@ -93,9 +98,8 @@ class CodeExec:
             return self._create_error("BUILD_ERROR", message, output)
         return build_status
 
-    def _create_tmp_dir(self, code):
+    def _create_tmp_dir(self, code, code_filename):
         tmp_path = tempfile.mkdtemp(dir=app_settings.tmp_dir)
-        code_filename = "code"
 
         with open(path.join(tmp_path, code_filename), "w") as fh:
             fh.write(code.decode("utf-8"))
@@ -112,3 +116,13 @@ class CodeExec:
             "message": message,
             "output": output,
         }
+
+    def __sanitize_filename(self, filename):
+        allowed_characters = string.ascii_letters + string.digits + "."
+        illegal_chars = [c for c in filename if c not in allowed_characters]
+
+        if not illegal_chars:
+            return filename
+
+        raise ValidationException("filename contains illegal characters ({}). Legal characters are '{}'" \
+                .format(",".join(illegal_chars), allowed_characters))
